@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vehicle-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: FS_APP_SECRET
+        sync: false
+      - key: PORT
+        value: 5000
