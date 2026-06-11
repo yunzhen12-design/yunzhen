@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id
+  name           String
+  department     String?
+  departmentId   String?       @map("department_id")
+  feishuOpenId   String?       @unique @map("feishu_open_id")
+  feishuUserId   String?       @map("feishu_user_id")
+  feishuUnionId  String?       @map("feishu_union_id")
+  email          String?
+  avatarUrl      String?       @map("avatar_url")
+  role           String        @default("普通员工")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  sessions       Session[]
+  applications   Application[] @relation("ApplicantApplications")
+  approvals      Application[] @relation("CurrentApproverApplications")
+
+  @@map("users")
+}
+
+model Session {
+  token     String   @id
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Vehicle {
+  id            String   @id
+  plateNo       String   @unique @map("plate_no")
+  brand         String?
+  model         String?
+  type          String?
+  seats         Int?
+  status        String   @default("可用")
+  department    String?
+  mileage       Int?     @default(0)
+  insuranceDue  String?  @map("insurance_due")
+  inspectionDue String?  @map("inspection_due")
+  owner         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("vehicles")
+}
+
+model Application {
+  id                String           @id
+  applicantUserId   String?          @map("applicant_user_id")
+  currentApproverId String?          @map("current_approver_id")
+  applicant         String
+  department        String?
+  reason            String?
+  passengers        Int?
+  startAt           String?          @map("start_at")
+  endAt             String?          @map("end_at")
+  fromAddr          String?          @map("from_addr")
+  toAddr            String?          @map("to_addr")
+  needDriver        Boolean          @default(false) @map("need_driver")
+  status            String           @default("待审批")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  applicantUser     User?            @relation("ApplicantApplications", fields: [applicantUserId], references: [id], onDelete: SetNull)
+  currentApprover   User?            @relation("CurrentApproverApplications", fields: [currentApproverId], references: [id], onDelete: SetNull)
+  approvalRecords   ApprovalRecord[]
+  dispatches        Dispatch[]
+
+  @@map("applications")
+}
+
+model Department {
+  id                  String   @id
+  name                String
+  parentId            String?  @map("parent_id")
+  feishuDepartmentId  String?  @unique @map("feishu_department_id")
+  leaderUserId        String?  @map("leader_user_id")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("departments")
+}
+
+model ApprovalRecord {
+  id             String      @id
+  applicationId  String      @map("application_id")
+  action         String
+  operatorId     String?     @map("operator_id")
+  operatorName   String?     @map("operator_name")
+  comment        String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("approval_records")
+}
+
+model ApprovalRule {
+  id             String   @id
+  departmentId   String?  @map("department_id")
+  departmentName String?  @map("department_name")
+  approverUserId String?  @map("approver_user_id")
+  approverRole   String?  @map("approver_role")
+  priority       Int      @default(100)
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("approval_rules")
+}
+
+model Dispatch {
+  id            String       @id
+  applicationId String       @map("application_id")
+  plateNo       String?      @map("plate_no")
+  driver        String?
+  plannedStart  String?      @map("planned_start")
+  plannedEnd    String?      @map("planned_end")
+  startMileage  Int?         @default(0) @map("start_mileage")
+  endMileage    Int?         @map("end_mileage")
+  status        String       @default("待出车")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("dispatches")
+}
+
+model MaintenanceRecord {
+  id        String  @id
+  plateNo   String  @map("plate_no")
+  type      String
+  title     String?
+  vendor    String?
+  cost      Float?  @default(0)
+  handledBy String? @map("handled_by")
+  date      String?
+  status    String  @default("处理中")
+
+  @@map("maintenance_records")
+}
+
+model Role {
+  name        String  @id
+  description String?
+  permissions String
+
+  @@map("roles")
+}
+
+model NotificationLog {
+  id        String   @id
+  channel   String
+  receiver  String?
+  title     String?
+  content   String?
+  status    String
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notification_logs")
+}
